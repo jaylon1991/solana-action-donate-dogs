@@ -62,6 +62,17 @@ export const GET = async (req: Request) => {
               },
             ],
           },
+          {
+            label: "Send SOL to Dogs", // button text
+            href: `${baseHref}&amount={amount}`, // this href will have a text input
+            parameters: [
+              {
+                name: "amount", // parameter name in the `href` above
+                label: "Enter the amount of SOL to send DOGS", // placeholder of the text input
+                required: true,
+              },
+            ],
+          },
         ],
       },
     };
