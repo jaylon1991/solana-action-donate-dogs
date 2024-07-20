@@ -35,7 +35,7 @@ export const GET = async (req: Request) => {
     ).toString();
 
     const baseHrefAgree = new URL(
-      `/api/actions/agree?fork_chain_address={fork_chain_address}`,
+      `/api/actions/donate?fork_chain_address`,
       requestUrl.origin
     ).toString();
 
@@ -52,27 +52,8 @@ export const GET = async (req: Request) => {
             href: `${baseHref}&amount=${amount}`,
           },
           {
-            label: `Send ${amount * 5} SOL`, // button text
-            href: `${baseHref}&amount=${amount * 5}`,
-          },
-          {
-            label: `Send ${amount * 10} SOL`, // button text
-            href: `${baseHref}&amount=${amount * 10}`,
-          },
-          {
-            label: "Send SOL", // button text
-            href: `${baseHref}&amount={amount}`, // this href will have a text input
-            parameters: [
-              {
-                name: "amount", // parameter name in the `href` above
-                label: "Enter the amount of SOL to send", // placeholder of the text input
-                required: true,
-              },
-            ],
-          },
-          {
             label: "Agree to Fork",
-            href: `${baseHrefAgree}`,
+            href: `${baseHrefAgree}={fork_chain_address}`,
             parameters: [
               {
                 name: "fork_chain_address",
