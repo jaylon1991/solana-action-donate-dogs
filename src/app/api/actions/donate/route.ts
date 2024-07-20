@@ -52,7 +52,7 @@ export const GET = async (req: Request) => {
             href: `${baseHrefAgree}`,
             parameters: [
               {
-                name: "fork_chain_address",
+                name: "new_fork",
                 label: "Enter the new Address",
                 required: true,
               },
