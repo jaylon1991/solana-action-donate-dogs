@@ -5,12 +5,15 @@ import {
   ActionGetResponse,
   ActionPostRequest,
 } from "@solana/actions";
+import * as anchor from "@project-serum/anchor";
+import { Program } from "@project-serum/anchor";
 import {
   Connection,
   LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
   Transaction,
+  TransactionInstruction,
 } from "@solana/web3.js";
 import {
   DEFAULT_SOL_ADDRESS,
@@ -28,6 +31,11 @@ export const GET = async (req: Request) => {
 
     const baseHref = new URL(
       `/api/actions/donate?to=${toPubkey.toBase58()}`,
+      requestUrl.origin
+    ).toString();
+
+    const baseHrefAgree = new URL(
+      `/api/actions/agree?fork_chain_address={fork_chain_address}`,
       requestUrl.origin
     ).toString();
 
@@ -64,7 +72,7 @@ export const GET = async (req: Request) => {
           },
           {
             label: "Agree to Fork",
-            href: `${baseHref}&fork_chain_address={fork_chain_address}`,
+            href: `${baseHrefAgree}`,
             parameters: [
               {
                 name: "fork_chain_address",
@@ -428,12 +436,23 @@ const IDL = {
   ]
 }
 
+export const POST = async (req: Request) => {
+  const requestUrl = new URL(req.url);
+  const action = requestUrl.searchParams.get("action");
 
-export const POST_AGREE = async (req: Request) => {
+  if (action === "agree") {
+    return handleAgree(req);
+  } else {
+    return handleDonate(req);
+  }
+};
+
+async function handleAgree(req: Request) {
   try {
     const requestUrl = new URL(req.url);
     const body: ActionPostRequest = await req.json();
 
+    // 使用用户提供的账户（钱包地址）
     let agreeerAccount: PublicKey;
     try {
       agreeerAccount = new PublicKey(body.account);
@@ -450,28 +469,39 @@ export const POST_AGREE = async (req: Request) => {
     }
 
     const connection = new Connection(DEFAULT_RPC);
-    const provider = new anchor.AnchorProvider(
-      connection,
-      new anchor.Wallet(Keypair.generate()),
-      { commitment: "processed" }
-    );
 
-    const programId = new PublicKey("9nB9sp3CDC2U1uYUPLXkjYhykDe8F9EicnEksqPH2ijr");
-    const program = new Program(IDL, programId, provider);
-
+    const programId = new PublicKey(IDL.address);
     const forkChainPubkey = new PublicKey(forkChainAddress);
 
-    const transaction = await program.methods.agree(forkChainPubkey)
-      .accounts({
-        forkChain: forkChainPubkey,
-        agreeer: agreeerAccount,
-        systemProgram: SystemProgram.programId,
-        treasury: await program.account.config.fetch().then(config => config.treasury),
-      })
-      .transaction();
+    // 从 IDL 中获取 agree 指令的识别符
+    const agreeInstructionInfo = IDL.instructions.find(instr => instr.name === "agree");
+    if (!agreeInstructionInfo) {
+      throw new Error("Agree instruction not found in IDL");
+    }
+    const agreeInstructionDiscriminator = Buffer.from(agreeInstructionInfo.discriminator);
 
-    transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    // 创建指令数据
+    const instructionData = Buffer.concat([
+      agreeInstructionDiscriminator,
+      forkChainPubkey.toBuffer()
+    ]);
+
+    // 创建指令
+    const agreeInstruction = new TransactionInstruction({
+      programId,
+      keys: [
+        { pubkey: forkChainPubkey, isSigner: false, isWritable: true },
+        { pubkey: agreeerAccount, isSigner: true, isWritable: true },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+        { pubkey: agreeerAccount, isSigner: false, isWritable: true }, // treasury 现在是用户自己的地址
+      ],
+      data: instructionData,
+    });
+
+    const transaction = new Transaction().add(agreeInstruction);
+
     transaction.feePayer = agreeerAccount;
+    transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
     const payload: ActionPostResponse = await createPostResponse({
       fields: {
@@ -492,10 +522,10 @@ export const POST_AGREE = async (req: Request) => {
       headers: ACTIONS_CORS_HEADERS,
     });
   }
-};
+}
 
 
-export const POST = async (req: Request) => {
+async function handleDonate(req: Request) {
   try {
     const requestUrl = new URL(req.url);
     const { amount, toPubkey } = validatedQueryParams(requestUrl);
