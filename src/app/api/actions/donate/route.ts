@@ -63,12 +63,12 @@ export const GET = async (req: Request) => {
             ],
           },
           {
-            label: "Send SOL to Dogs", // button text
-            href: `${baseHref}&amount={amount}`, // this href will have a text input
+            label: "Agree to Fork",
+            href: `${baseHref}&fork_chain_address={fork_chain_address}`,
             parameters: [
               {
-                name: "amount", // parameter name in the `href` above
-                label: "Enter the amount of SOL to send DOGS", // placeholder of the text input
+                name: "fork_chain_address",
+                label: "Enter the address of the fork chain",
                 required: true,
               },
             ],
@@ -94,6 +94,406 @@ export const GET = async (req: Request) => {
 // DO NOT FORGET TO INCLUDE THE `OPTIONS` HTTP METHOD
 // THIS WILL ENSURE CORS WORKS FOR BLINKS
 export const OPTIONS = GET;
+
+
+const IDL = {
+  "address": "9nB9sp3CDC2U1uYUPLXkjYhykDe8F9EicnEksqPH2ijr",
+  "metadata": {
+    "name": "fork_agree",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "agree",
+      "discriminator": [
+        210,
+        74,
+        38,
+        225,
+        191,
+        209,
+        34,
+        101
+      ],
+      "accounts": [
+        {
+          "name": "fork_chain",
+          "writable": true
+        },
+        {
+          "name": "agreeer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "_fork_chain_address",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "distribute_rewards",
+      "discriminator": [
+        97,
+        6,
+        227,
+        255,
+        124,
+        165,
+        3,
+        148
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true
+        },
+        {
+          "name": "fork_chain",
+          "writable": true
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        },
+        {
+          "name": "head_token_account",
+          "writable": true
+        },
+        {
+          "name": "agreeer_token_account",
+          "writable": true
+        },
+        {
+          "name": "treasury_authority",
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "fork",
+      "discriminator": [
+        32,
+        99,
+        175,
+        232,
+        14,
+        112,
+        193,
+        104
+      ],
+      "accounts": [
+        {
+          "name": "fork_chain",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "percentage",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "withdraw",
+      "discriminator": [
+        183,
+        18,
+        70,
+        156,
+        148,
+        109,
+        161,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "config",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "to",
+          "writable": true
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Config",
+      "discriminator": [
+        155,
+        12,
+        170,
+        224,
+        30,
+        250,
+        204,
+        130
+      ]
+    },
+    {
+      "name": "ForkChain",
+      "discriminator": [
+        249,
+        238,
+        165,
+        137,
+        13,
+        142,
+        211,
+        70
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Unauthorized"
+    }
+  ],
+  "types": [
+    {
+      "name": "Config",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "total_supply",
+            "type": "u64"
+          },
+          {
+            "name": "remaining_supply",
+            "type": "u64"
+          },
+          {
+            "name": "epoch_reward",
+            "type": "u64"
+          },
+          {
+            "name": "epoch_length",
+            "type": "u64"
+          },
+          {
+            "name": "halving_interval",
+            "type": "u64"
+          },
+          {
+            "name": "fork_cost",
+            "type": "u64"
+          },
+          {
+            "name": "agree_cost",
+            "type": "u64"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ForkChain",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "head",
+            "type": "pubkey"
+          },
+          {
+            "name": "percentage",
+            "type": "u8"
+          },
+          {
+            "name": "current_epoch",
+            "type": "u64"
+          },
+          {
+            "name": "agreeers",
+            "type": {
+              "vec": "pubkey"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+
+
+export const POST_AGREE = async (req: Request) => {
+  try {
+    const requestUrl = new URL(req.url);
+    const body: ActionPostRequest = await req.json();
+
+    let agreeerAccount: PublicKey;
+    try {
+      agreeerAccount = new PublicKey(body.account);
+    } catch (err) {
+      return new Response('Invalid "account" provided', {
+        status: 400,
+        headers: ACTIONS_CORS_HEADERS,
+      });
+    }
+
+    const forkChainAddress = requestUrl.searchParams.get("fork_chain_address");
+    if (!forkChainAddress) {
+      throw "Missing fork_chain_address parameter";
+    }
+
+    const connection = new Connection(DEFAULT_RPC);
+    const provider = new anchor.AnchorProvider(
+      connection,
+      new anchor.Wallet(Keypair.generate()),
+      { commitment: "processed" }
+    );
+
+    const programId = new PublicKey("9nB9sp3CDC2U1uYUPLXkjYhykDe8F9EicnEksqPH2ijr");
+    const program = new Program(IDL, programId, provider);
+
+    const forkChainPubkey = new PublicKey(forkChainAddress);
+
+    const transaction = await program.methods.agree(forkChainPubkey)
+      .accounts({
+        forkChain: forkChainPubkey,
+        agreeer: agreeerAccount,
+        systemProgram: SystemProgram.programId,
+        treasury: await program.account.config.fetch().then(config => config.treasury),
+      })
+      .transaction();
+
+    transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    transaction.feePayer = agreeerAccount;
+
+    const payload: ActionPostResponse = await createPostResponse({
+      fields: {
+        transaction,
+        message: `Agree to fork chain ${forkChainAddress}`,
+      },
+    });
+
+    return Response.json(payload, {
+      headers: ACTIONS_CORS_HEADERS,
+    });
+  } catch (err) {
+    console.log(err);
+    let message = "An unknown error occurred";
+    if (typeof err == "string") message = err;
+    return new Response(message, {
+      status: 400,
+      headers: ACTIONS_CORS_HEADERS,
+    });
+  }
+};
+
 
 export const POST = async (req: Request) => {
   try {
