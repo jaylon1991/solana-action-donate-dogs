@@ -11,7 +11,7 @@ export const DEFAULT_SOL_AMOUNT: number = process.env.DEFAULTAMOUNT
   : 0.1;
 
 export const DEFAULT_RPC =
-  process.env.RPC_URL_MAINNET ?? clusterApiUrl("devnet");
+  process.env.RPC_URL_DEVNET ?? clusterApiUrl("devnet");
 
 export const DEFAULT_TITLE = process.env.TITLE ?? "Donate SOL to save more dogs";
 
