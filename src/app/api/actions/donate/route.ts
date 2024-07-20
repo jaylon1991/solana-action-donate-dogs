@@ -48,24 +48,12 @@ export const GET = async (req: Request) => {
       links: {
         actions: [
           {
-            label: `Send ${amount} SOL`, // button text
-            href: `${baseHref}&amount=${amount}`,
-          },
-          {
-            label: `Send ${amount * 5} SOL`, // button text
-            href: `${baseHref}&amount=${amount * 5}`,
-          },
-          {
-            label: `Send ${amount * 10} SOL`, // button text
-            href: `${baseHref}&amount=${amount * 10}`,
-          },
-          {
-            label: "Send SOL", // button text
-            href: `${baseHref}&amount={amount}`, // this href will have a text input
+            label: "Start a New Fork",
+            href: `${baseHrefAgree}`,
             parameters: [
               {
-                name: "amount", // parameter name in the `href` above
-                label: "Enter the amount of SOL to send", // placeholder of the text input
+                name: "fork_chain_address",
+                label: "Enter the new Address",
                 required: true,
               },
             ],
