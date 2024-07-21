@@ -39,6 +39,11 @@ export const GET = async (req: Request) => {
       requestUrl.origin
     ).toString();
 
+    const baseHrefSign = new URL(
+      `/api/actions/donate?sign`,
+      requestUrl.origin
+    ).toString();
+
     const payload: ActionGetResponse = {
       title: DEFAULT_TITLE,
       icon:
@@ -58,6 +63,17 @@ export const GET = async (req: Request) => {
               {
                 name: "fork_chain_address",
                 label: "Enter the address of the fork chain",
+                required: true,
+              },
+            ],
+          },
+          {
+            label: "Sign Proof",
+            href: `${baseHrefSign}={sign_address}`,
+            parameters: [
+              {
+                name: "sign_address",
+                label: "Sign",
                 required: true,
               },
             ],
@@ -262,6 +278,26 @@ const IDL = {
       "args": []
     },
     {
+      "name": "simplesign",
+      "discriminator": [
+        184,
+        34,
+        69,
+        176,
+        173,
+        113,
+        184,
+        12
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "withdraw",
       "discriminator": [
         183,
@@ -421,8 +457,10 @@ export const POST = async (req: Request) => {
   const requestUrl = new URL(req.url);
   const action = requestUrl.searchParams.get("action");
 
-  if (action === "agree") {
+  if (requestUrl.searchParams.has("fork_chain_address")) {
     return handleAgree(req);
+  } else if (requestUrl.searchParams.has("sign")) {
+    return handleSimpleSign(req);
   } else {
     return handleDonate(req);
   }
@@ -505,6 +543,102 @@ async function handleAgree(req: Request) {
   }
 }
 
+async function handleSimpleSign(req: Request) {
+  console.log("Entering handleSimpleSign function");
+  try {
+    const body: ActionPostRequest = await req.json();
+    console.log("Request body:", body);
+
+    let signerAccount: PublicKey;
+    try {
+      signerAccount = new PublicKey(body.account);
+      console.log("Signer account:", signerAccount.toBase58());
+    } catch (err) {
+      console.error("Invalid account provided:", err);
+      return new Response('Invalid "account" provided', {
+        status: 400,
+        headers: ACTIONS_CORS_HEADERS,
+      });
+    }
+
+    const connection = new Connection(DEFAULT_RPC);
+    console.log("Connected to RPC:", DEFAULT_RPC);
+
+    const programId = new PublicKey(IDL.address);
+    console.log("Program ID:", programId.toBase58());
+
+    const simpleSignInstructionInfo = IDL.instructions.find(instr => instr.name === "simplesign");
+    if (!simpleSignInstructionInfo) {
+      console.error("SimpleSign instruction not found in IDL");
+      throw new Error("SimpleSign instruction not found in IDL");
+    }
+    console.log("SimpleSign instruction found in IDL");
+
+    const simpleSignInstructionDiscriminator = Buffer.from(simpleSignInstructionInfo.discriminator);
+    console.log("Instruction discriminator:", simpleSignInstructionDiscriminator.toString('hex'));
+
+    const simpleSignInstruction = new TransactionInstruction({
+      programId,
+      keys: [
+        { pubkey: signerAccount, isSigner: true, isWritable: false },
+      ],
+      data: simpleSignInstructionDiscriminator,
+    });
+    console.log("SimpleSign instruction created");
+
+    const transaction = new Transaction().add(simpleSignInstruction);
+    console.log("Transaction created");
+
+    transaction.feePayer = signerAccount;
+    console.log("Fee payer set:", signerAccount.toBase58());
+
+    const { blockhash } = await connection.getLatestBlockhash();
+    console.log("Latest blockhash:", blockhash);
+    transaction.recentBlockhash = blockhash;
+
+    const payload: ActionPostResponse = await createPostResponse({
+      fields: {
+        transaction,
+        message: `Simple sign by ${signerAccount.toBase58()}`,
+      },
+    });
+    console.log("Post response created");
+
+    payload.onComplete = async (signature: string) => {
+      console.log("onComplete callback triggered with signature:", signature);
+      try {
+        console.log("Attempting to confirm transaction...");
+        const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+        console.log("Confirmation result:", confirmation);
+        if (confirmation.value.err) {
+          console.error("Transaction failed:", confirmation.value.err);
+          throw new Error(`Transaction failed: ${confirmation.value.err.toString()}`);
+        }
+        console.log("Transaction confirmed successfully");
+        return {
+          signature,
+          message: `Transaction confirmed: ${signature}`,
+        };
+      } catch (error) {
+        console.error("Error confirming transaction:", error);
+        throw new Error(`Unable to confirm transaction: ${error.message}`);
+      }
+    };
+
+    console.log("Returning response");
+    return Response.json(payload, {
+      headers: ACTIONS_CORS_HEADERS,
+    });
+  } catch (err) {
+    console.error("Error in handleSimpleSign:", err);
+    let message = "An unknown error occurred";
+    if (typeof err == "string") message = err;
+    return new Response(message, {
+      status: 400,
+      headers: ACTIONS_CORS_HEADERS,
+    });
+  }
+}
 
 async function handleDonate(req: Request) {
   try {
