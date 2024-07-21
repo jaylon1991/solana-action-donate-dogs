@@ -596,6 +596,7 @@ async function handleSimpleSign(req: Request) {
     console.log("Latest blockhash:", blockhash);
     transaction.recentBlockhash = blockhash;
 
+    // 创建 ActionPostResponse
     const payload: ActionPostResponse = await createPostResponse({
       fields: {
         transaction,
@@ -604,35 +605,16 @@ async function handleSimpleSign(req: Request) {
     });
     console.log("Post response created");
 
-    payload.onComplete = async (signature: string) => {
-      console.log("onComplete callback triggered with signature:", signature);
-      try {
-        console.log("Attempting to confirm transaction...");
-        const confirmation = await connection.confirmTransaction(signature, 'confirmed');
-        console.log("Confirmation result:", confirmation);
-        if (confirmation.value.err) {
-          console.error("Transaction failed:", confirmation.value.err);
-          throw new Error(`Transaction failed: ${confirmation.value.err.toString()}`);
-        }
-        console.log("Transaction confirmed successfully");
-        return {
-          signature,
-          message: `Transaction confirmed: ${signature}`,
-        };
-      } catch (error) {
-        console.error("Error confirming transaction:", error);
-        throw new Error(`Unable to confirm transaction: ${error.message}`);
-      }
-    };
-
+    // 直接返回 payload，不包含 onComplete
     console.log("Returning response");
     return Response.json(payload, {
       headers: ACTIONS_CORS_HEADERS,
     });
+
   } catch (err) {
     console.error("Error in handleSimpleSign:", err);
     let message = "An unknown error occurred";
-    if (typeof err == "string") message = err;
+    if (err instanceof Error) message = err.message;
     return new Response(message, {
       status: 400,
       headers: ACTIONS_CORS_HEADERS,
