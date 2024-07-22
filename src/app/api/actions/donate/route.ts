@@ -15,6 +15,7 @@ import {
   SystemProgram,
   Transaction,
   TransactionInstruction,
+  Keypair,
 } from "@solana/web3.js";
 import {
   DEFAULT_SOL_ADDRESS,
@@ -36,7 +37,12 @@ export const GET = async (req: Request) => {
     ).toString();
 
     const baseHrefAgree = new URL(
-      `/api/actions/donate?fork_chain_address`,
+      `/api/actions/donate?agree_chain_address`,
+      requestUrl.origin
+    ).toString();
+
+    const baseHrefFork = new URL(
+      `/api/actions/donate?fork_percentage`,
       requestUrl.origin
     ).toString();
 
@@ -53,32 +59,43 @@ export const GET = async (req: Request) => {
       label: "Transfer", // this value will be ignored since `links.actions` exists
       links: {
         actions: [
+          // {
+          //   label: `Send ${amount} SOL`, // button text
+          //   href: `${baseHref}&amount=${amount}`,
+          // },
           {
-            label: `Send ${amount} SOL`, // button text
-            href: `${baseHref}&amount=${amount}`,
+            label: "Fork",
+            href: `${baseHrefFork}={fork_percentage}`,
+            parameters: [
+              {
+                name: "fork_percentage",
+                label: "Enter the percentage",
+                required: true,
+              },
+            ],
           },
           {
             label: "Agree to Fork",
-            href: `${baseHrefAgree}={fork_chain_address}`,
+            href: `${baseHrefAgree}={agree_chain_address}`,
             parameters: [
               {
-                name: "fork_chain_address",
-                label: "Enter the address of the fork chain",
+                name: "agree_chain_address",
+                label: "Enter the address to agree",
                 required: true,
               },
             ],
           },
-          {
-            label: "Sign Proof",
-            href: `${baseHrefSign}={sign_address}`,
-            parameters: [
-              {
-                name: "sign_address",
-                label: "Sign",
-                required: true,
-              },
-            ],
-          },
+          // {
+          //   label: "Sign Proof",
+          //   href: `${baseHrefSign}={sign_address}`,
+          //   parameters: [
+          //     {
+          //       name: "sign_address",
+          //       label: "Sign",
+          //       required: true,
+          //     },
+          //   ],
+          // },
         ],
       },
     };
@@ -107,7 +124,9 @@ export const POST = async (req: Request) => {
   const requestUrl = new URL(req.url);
   const action = requestUrl.searchParams.get("action");
 
-  if (requestUrl.searchParams.has("fork_chain_address")) {
+  if (requestUrl.searchParams.has("fork_percentage")) {
+    return handleFork(req);
+  } else if (requestUrl.searchParams.has("agree_chain_address")) {
     return handleAgree(req);
   } else if (requestUrl.searchParams.has("sign")) {
     return handleSimpleSign(req);
@@ -115,6 +134,93 @@ export const POST = async (req: Request) => {
     return handleDonate(req);
   }
 };
+
+async function handleFork(req: Request) {
+  try {
+    const requestUrl = new URL(req.url);
+    const body: ActionPostRequest = await req.json();
+
+    // Use the provided account (wallet address) as the creator
+    let creatorAccount: PublicKey;
+    try {
+      creatorAccount = new PublicKey(body.account);
+    } catch (err) {
+      return new Response('Invalid "account" provided', {
+        status: 400,
+        headers: ACTIONS_CORS_HEADERS,
+      });
+    }
+
+    const percentageStr = requestUrl.searchParams.get("fork_percentage");
+    if (!percentageStr) {
+      throw "Missing percentage parameter";
+    }
+    const percentage = parseInt(percentageStr);
+    if (isNaN(percentage) || percentage < 0 || percentage > 100) {
+      throw "Invalid percentage value. Must be between 0 and 100.";
+    }
+
+    const connection = new Connection(DEFAULT_RPC);
+
+    const programId = new PublicKey(FORK_AGREE_IDL.address);
+    
+    // Hardcode the config address
+    const configPubkey = new PublicKey('2mKdgzcBhoVjfAHnYHKw8vsc4djjQtLVL5tjiwre426C');
+
+    // Generate a new keypair for the fork_chain account
+    const forkChainKeypair = Keypair.generate();
+
+    // Get the fork_chain instruction's discriminator from the IDL
+    const forkChainInstructionInfo = FORK_AGREE_IDL.instructions.find(instr => instr.name === "fork_chain");
+    if (!forkChainInstructionInfo) {
+      throw new Error("Fork chain instruction not found in IDL");
+    }
+    const forkChainInstructionDiscriminator = Buffer.from(forkChainInstructionInfo.discriminator);
+
+    // Create instruction data
+    const instructionData = Buffer.concat([
+      forkChainInstructionDiscriminator,
+      Buffer.from([percentage]) // u8 percentage
+    ]);
+
+    // Create the instruction
+    const forkChainInstruction = new TransactionInstruction({
+      programId,
+      keys: [
+        { pubkey: configPubkey, isSigner: false, isWritable: true },
+        { pubkey: forkChainKeypair.publicKey, isSigner: true, isWritable: true },
+        { pubkey: creatorAccount, isSigner: true, isWritable: true },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      ],
+      data: instructionData,
+    });
+
+    const transaction = new Transaction().add(forkChainInstruction);
+
+    transaction.feePayer = creatorAccount;
+    transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
+    const payload: ActionPostResponse = await createPostResponse({
+      fields: {
+        transaction,
+        message: `Fork chain with ${percentage}% percentage`,
+      },
+      signers: [forkChainKeypair],
+    });
+
+    return Response.json(payload, {
+      headers: ACTIONS_CORS_HEADERS,
+    });
+  } catch (err) {
+    console.log(err);
+    let message = "An unknown error occurred";
+    if (typeof err == "string") message = err;
+    return new Response(message, {
+      status: 400,
+      headers: ACTIONS_CORS_HEADERS,
+    });
+  }
+}
 
 async function handleAgree(req: Request) {
   try {
@@ -132,7 +238,7 @@ async function handleAgree(req: Request) {
       });
     }
 
-    const forkChainAddress = requestUrl.searchParams.get("fork_chain_address");
+    const forkChainAddress = requestUrl.searchParams.get("agree_chain_address");
     if (!forkChainAddress) {
       throw "Missing fork_chain_address parameter";
     }
