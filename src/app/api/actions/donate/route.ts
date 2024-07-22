@@ -124,6 +124,25 @@ const IDL = {
       ],
       "accounts": [
         {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "fork_chain",
           "writable": true
         },
@@ -135,18 +154,9 @@ const IDL = {
         {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
-        },
-        {
-          "name": "treasury",
-          "writable": true
         }
       ],
-      "args": [
-        {
-          "name": "_fork_chain_address",
-          "type": "pubkey"
-        }
-      ]
+      "args": []
     },
     {
       "name": "distribute_rewards",
@@ -163,14 +173,28 @@ const IDL = {
       "accounts": [
         {
           "name": "config",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
         },
         {
-          "name": "fork_chain",
-          "writable": true
+          "name": "fork_chain"
         },
         {
-          "name": "treasury",
+          "name": "mint",
           "writable": true
         },
         {
@@ -182,10 +206,6 @@ const IDL = {
           "writable": true
         },
         {
-          "name": "treasury_authority",
-          "signer": true
-        },
-        {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
@@ -193,18 +213,37 @@ const IDL = {
       "args": []
     },
     {
-      "name": "fork",
+      "name": "fork_chain",
       "discriminator": [
-        32,
-        99,
-        175,
-        232,
-        14,
-        112,
-        193,
-        104
+        237,
+        21,
+        242,
+        85,
+        244,
+        169,
+        22,
+        19
       ],
       "accounts": [
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
         {
           "name": "fork_chain",
           "writable": true,
@@ -216,20 +255,8 @@ const IDL = {
           "signer": true
         },
         {
-          "name": "config",
-          "writable": true
-        },
-        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
-        },
-        {
-          "name": "rent",
-          "address": "SysvarRent111111111111111111111111111111111"
-        },
-        {
-          "name": "treasury",
-          "writable": true
         }
       ],
       "args": [
@@ -255,7 +282,21 @@ const IDL = {
         {
           "name": "config",
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "owner",
@@ -263,12 +304,17 @@ const IDL = {
           "signer": true
         },
         {
-          "name": "treasury",
-          "writable": true
+          "name": "mint",
+          "writable": true,
+          "signer": true
         },
         {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "rent",
@@ -295,47 +341,54 @@ const IDL = {
           "signer": true
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "message",
+          "type": "string"
+        }
+      ]
     },
     {
-      "name": "withdraw",
+      "name": "toggle_transfers",
       "discriminator": [
-        183,
-        18,
-        70,
-        156,
-        148,
-        109,
-        161,
-        34
+        133,
+        22,
+        1,
+        216,
+        219,
+        21,
+        178,
+        36
       ],
       "accounts": [
         {
           "name": "config",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "owner",
-          "writable": true,
           "signer": true
-        },
-        {
-          "name": "to",
-          "writable": true
-        },
-        {
-          "name": "treasury",
-          "writable": true
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
-          "name": "amount",
-          "type": "u64"
+          "name": "enabled",
+          "type": "bool"
         }
       ]
     }
@@ -373,6 +426,11 @@ const IDL = {
       "code": 6000,
       "name": "Unauthorized",
       "msg": "Unauthorized"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidPercentage",
+      "msg": "Invalid percentage"
     }
   ],
   "types": [
@@ -418,8 +476,8 @@ const IDL = {
             "type": "u64"
           },
           {
-            "name": "treasury",
-            "type": "pubkey"
+            "name": "transfers_enabled",
+            "type": "bool"
           }
         ]
       }
@@ -436,10 +494,6 @@ const IDL = {
           {
             "name": "percentage",
             "type": "u8"
-          },
-          {
-            "name": "current_epoch",
-            "type": "u64"
           },
           {
             "name": "agreeers",
@@ -546,6 +600,7 @@ async function handleAgree(req: Request) {
 async function handleSimpleSign(req: Request) {
   console.log("Entering handleSimpleSign function");
   try {
+    const requestUrl = new URL(req.url);
     const body: ActionPostRequest = await req.json();
     console.log("Request body:", body);
 
@@ -560,6 +615,9 @@ async function handleSimpleSign(req: Request) {
         headers: ACTIONS_CORS_HEADERS,
       });
     }
+
+    const message = requestUrl.searchParams.get("sign_address") || "Hello, Solana!";
+    console.log("Message to sign:", message);
 
     const connection = new Connection(DEFAULT_RPC);
     console.log("Connected to RPC:", DEFAULT_RPC);
@@ -577,12 +635,24 @@ async function handleSimpleSign(req: Request) {
     const simpleSignInstructionDiscriminator = Buffer.from(simpleSignInstructionInfo.discriminator);
     console.log("Instruction discriminator:", simpleSignInstructionDiscriminator.toString('hex'));
 
+    // Encode the message
+    const encodedMessage = Buffer.from(message, 'utf-8');
+    const messageLength = Buffer.alloc(4);
+    messageLength.writeUInt32LE(encodedMessage.length, 0);
+
+    // Concatenate the instruction data
+    const instructionData = Buffer.concat([
+      simpleSignInstructionDiscriminator,
+      messageLength,
+      encodedMessage
+    ]);
+
     const simpleSignInstruction = new TransactionInstruction({
       programId,
       keys: [
         { pubkey: signerAccount, isSigner: true, isWritable: false },
       ],
-      data: simpleSignInstructionDiscriminator,
+      data: instructionData,
     });
     console.log("SimpleSign instruction created");
 
@@ -596,16 +666,16 @@ async function handleSimpleSign(req: Request) {
     console.log("Latest blockhash:", blockhash);
     transaction.recentBlockhash = blockhash;
 
-    // 创建 ActionPostResponse
+    // Create ActionPostResponse
     const payload: ActionPostResponse = await createPostResponse({
       fields: {
         transaction,
-        message: `Simple sign by ${signerAccount.toBase58()}`,
+        message: `Simple sign: "${message}" by ${signerAccount.toBase58()}`,
       },
     });
     console.log("Post response created");
 
-    // 直接返回 payload，不包含 onComplete
+    // Return payload
     console.log("Returning response");
     return Response.json(payload, {
       headers: ACTIONS_CORS_HEADERS,
