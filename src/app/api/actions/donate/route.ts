@@ -121,7 +121,7 @@ async function handleAgree(req: Request) {
     const requestUrl = new URL(req.url);
     const body: ActionPostRequest = await req.json();
 
-    // 使用用户提供的账户（钱包地址）
+    // Use the provided account (wallet address)
     let agreeerAccount: PublicKey;
     try {
       agreeerAccount = new PublicKey(body.account);
@@ -142,27 +142,27 @@ async function handleAgree(req: Request) {
     const programId = new PublicKey(FORK_AGREE_IDL.address);
     const forkChainPubkey = new PublicKey(forkChainAddress);
 
-    // 从 IDL 中获取 agree 指令的识别符
+    // Hardcode the config address
+    const configPubkey = new PublicKey('2mKdgzcBhoVjfAHnYHKw8vsc4djjQtLVL5tjiwre426C');
+
+    // Get the agree instruction's discriminator from the IDL
     const agreeInstructionInfo = FORK_AGREE_IDL.instructions.find(instr => instr.name === "agree");
     if (!agreeInstructionInfo) {
       throw new Error("Agree instruction not found in IDL");
     }
     const agreeInstructionDiscriminator = Buffer.from(agreeInstructionInfo.discriminator);
 
-    // 创建指令数据
-    const instructionData = Buffer.concat([
-      agreeInstructionDiscriminator,
-      forkChainPubkey.toBuffer()
-    ]);
+    // Create instruction data (no additional data needed for this instruction)
+    const instructionData = agreeInstructionDiscriminator;
 
-    // 创建指令
+    // Create the instruction
     const agreeInstruction = new TransactionInstruction({
       programId,
       keys: [
+        { pubkey: configPubkey, isSigner: false, isWritable: true },
         { pubkey: forkChainPubkey, isSigner: false, isWritable: true },
         { pubkey: agreeerAccount, isSigner: true, isWritable: true },
         { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-        { pubkey: agreeerAccount, isSigner: false, isWritable: true }, // treasury 现在是用户自己的地址
       ],
       data: instructionData,
     });
